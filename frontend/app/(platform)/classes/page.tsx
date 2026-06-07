@@ -7,6 +7,8 @@ import { ClassCardActions } from "@/components/forms/ClassCardActions";
 import api from "@/lib/api";
 import { normalizeStudentRows } from "@/lib/adapters";
 
+export const dynamic = "force-dynamic";
+
 export default async function ClassesPage({
   searchParams,
 }: {
