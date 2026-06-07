@@ -2,8 +2,8 @@
 
 The project is split into two folders:
 
-- `frontend/` contains the Next.js app.
-- `backend/` contains the HTTP API for the major features.
+- `backend/` contains the HTTP API.
+- Root contains the Next.js app.
 
 ## Major Feature Modules
 
@@ -11,7 +11,7 @@ The project is split into two folders:
 - Backend Supabase data layer: `backend/services.js`
 - Backend Supabase client: `backend/supabase.js`
 - Supabase schema script: `backend/schema.sql`
-- Frontend API helper: `frontend/lib/api.ts`
+- Frontend API helper: `lib/api.ts`
 
 ## Required Environment Variables
 
@@ -22,7 +22,7 @@ Create `backend/.env` from `backend/.env.example` and fill:
 - `SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>`
 - `FRONTEND_URL=http://localhost:3000`
 
-Create `frontend/.env.local` from `frontend/.env.local.example`:
+Create `.env.local` from `.env.example`:
 
 - `NEXT_PUBLIC_API_URL=http://localhost:4000`
 
@@ -38,7 +38,6 @@ Important: use service role key only in backend `.env`, never in frontend.
 ## Run the frontend
 
 ```bash
-cd frontend
 npm install
 npm run dev
 ```
