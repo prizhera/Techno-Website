@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   ComposedChart,
   Bar,
@@ -44,6 +44,8 @@ function mockScoreDistribution() {
 }
 
 export function PerformanceDistributionChart() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
   const mock = useMemo(() => mockScoreDistribution(), []);
   const { histogram, mean, stdDev, totalStudents } = mock;
 
@@ -82,8 +84,8 @@ export function PerformanceDistributionChart() {
         </div>
       </div>
 
-      <div className="h-72">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="h-72" style={{ minHeight: 288 }}>
+        {mounted ? <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={chartData} margin={{ top: 8, right: 16, bottom: 4, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis
@@ -116,7 +118,7 @@ export function PerformanceDistributionChart() {
             <Bar dataKey="count" name="count" fill="#6366f1" radius={[3, 3, 0, 0]} opacity={0.35} />
             <Line type="monotone" dataKey="normal" name="normal" stroke="#6366f1" strokeWidth={2} dot={false} connectNulls={false} />
           </ComposedChart>
-        </ResponsiveContainer>
+        </ResponsiveContainer> : <div className="flex h-72 items-center justify-center text-sm text-slate-400">Loading chart...</div>}
       </div>
 
       <p className="text-xs text-slate-500">

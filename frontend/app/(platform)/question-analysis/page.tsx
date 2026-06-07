@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
@@ -52,7 +52,7 @@ function formatStatus(status?: string) {
   return status.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-export default function QuestionAnalysisPage() {
+function QuestionAnalysisPage() {
   const { pushToast } = useToast();
   const searchParams = useSearchParams();
   const selectedAssessmentIdRef = useRef<string | null>(null);
@@ -840,5 +840,13 @@ export default function QuestionAnalysisPage() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center p-12"><Loader2 className="h-6 w-6 animate-spin text-slate-400" /></div>}>
+      <QuestionAnalysisPage />
+    </Suspense>
   );
 }
