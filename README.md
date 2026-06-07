@@ -1,36 +1,181 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Technoweb Monorepo
 
-## Getting Started
+The project is split into two folders:
 
-First, run the development server:
+- `frontend/` contains the Next.js app.
+- `backend/` contains the HTTP API for the major features.
+
+## Major Feature Modules
+
+- Backend API server: `backend/server.js`
+- Backend Supabase data layer: `backend/services.js`
+- Backend Supabase client: `backend/supabase.js`
+- Supabase schema script: `backend/schema.sql`
+- Frontend API helper: `frontend/lib/api.ts`
+
+## Required Environment Variables
+
+Create `backend/.env` from `backend/.env.example` and fill:
+
+- `PORT=4000`
+- `SUPABASE_URL=<your-supabase-project-url>`
+- `SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>`
+- `FRONTEND_URL=http://localhost:3000`
+
+Create `frontend/.env.local` from `frontend/.env.local.example`:
+
+- `NEXT_PUBLIC_API_URL=http://localhost:4000`
+
+Important: use service role key only in backend `.env`, never in frontend.
+
+## Supabase Setup (One-Time)
+
+1. Open Supabase SQL editor.
+2. Run `backend/schema.sql`.
+3. Insert at least one teacher row into `users`.
+4. Use that `users.id` as `teacher_id` when creating classes.
+
+## Run the frontend
 
 ```bash
+cd frontend
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Run the backend
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cd backend
+npm install
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The backend runs on `http://localhost:4000` by default.
 
-## Learn More
+## Backend endpoints
 
-To learn more about Next.js, take a look at the following resources:
+- `GET /health`
+- `GET /api/dashboard`
+- `GET /api/analytics`
+- `GET /api/classes`
+- `POST /api/classes`
+- `GET /api/students`
+- `POST /api/students`
+- `POST /api/students/bulk`
+- `GET /api/assessments`
+- `POST /api/assessments`
+- `GET /api/questions`
+- `POST /api/questions`
+- `GET /api/mistake-labels`
+- `POST /api/mistake-labels`
+- `GET /api/student-mistakes`
+- `POST /api/student-mistakes`
+- `GET /api/question-mistakes`
+- `POST /api/question-mistake-batch`
+- `GET /api/teacher-notes`
+- `POST /api/teacher-notes`
+- `GET /api/analytics/assessment/:assessmentId`
+- `GET /api/students/:studentId/insights`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Quick Test Payloads
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Create class (`POST /api/classes`):
 
-## Deploy on Vercel
+```json
+{
+	"class_name": "BSCE SC123",
+	"subject": "Calculus 1",
+	"teacher_id": "<uuid-from-users-table>"
+}
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Create student (`POST /api/students`):
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```json
+{
+	"student_number": "2026-001",
+	"full_name": "Juan Dela Cruz",
+	"class_id": "<uuid-from-classes-table>"
+}
+```
+
+Create assessment (`POST /api/assessments`):
+
+```json
+{
+	"title": "Midterm Exam 1",
+	"class_id": "<uuid-from-classes-table>",
+	"status": "pending"
+}
+```
+
+Bulk add students (`POST /api/students/bulk`):
+
+```json
+{
+	"class_id": "<uuid-from-classes-table>",
+	"students": [
+		{ "student_number": "2026-001", "full_name": "Juan Dela Cruz" },
+		{ "student_number": "2026-002", "full_name": "Maria Santos" }
+	]
+}
+```
+
+Create question (`POST /api/questions`):
+
+```json
+{
+	"assessment_id": "<uuid-from-assessments-table>",
+	"question_number": 1,
+	"question_text": "Differentiate f(x) = 5x^4 - 3x^2 + 7",
+	"topic": "Power Rule"
+}
+```
+
+Create student mistake (`POST /api/student-mistakes`):
+
+```json
+{
+	"student_id": "<uuid-from-students-table>",
+	"question_id": "<uuid-from-questions-table>",
+	"mistake_label_id": "<uuid-from-mistake_labels-table>",
+	"teacher_note": "Forgot inner derivative"
+}
+```
+
+Batch tag wrong students per question (`POST /api/question-mistake-batch`):
+
+```json
+{
+	"question_id": "<uuid-from-questions-table>",
+	"mistake_label_id": "<uuid-from-mistake_labels-table>",
+	"student_ids": [
+		"<uuid-student-1>",
+		"<uuid-student-2>",
+		"<uuid-student-3>"
+	],
+	"teacher_note": "Many students used product rule instead of chain rule"
+}
+```
+
+Create teacher note (`POST /api/teacher-notes`):
+
+```json
+{
+	"assessment_id": "<uuid-from-assessments-table>",
+	"question_id": "<optional-uuid-from-questions-table>",
+	"note_text": "Most errors were from algebraic simplification after differentiation"
+}
+```
+
+Assessment question analytics summary (`GET /api/analytics/assessment/:assessmentId`) returns:
+
+- question-level incorrect counts
+- unique students affected per question
+- mistake distribution per question
+
+Student insights (`GET /api/students/:studentId/insights`) returns:
+
+- categorized recurring mistakes
+- detailed mistake history with linked question, assessment, and class metadata
