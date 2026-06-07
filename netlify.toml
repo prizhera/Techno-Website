@@ -2,5 +2,5 @@
   command = "npm run build"
 
 [build.environment]
-  NEXT_PUBLIC_API_URL = "https://your-backend-url.com"
+  NEXT_PUBLIC_API_URL = "https://techno-website.onrender.com"
   SECRETS_SCAN_ENABLED = "false"
