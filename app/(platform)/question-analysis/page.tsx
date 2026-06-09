@@ -855,23 +855,16 @@ function DownloadInsightBtn({ question, assessmentTitle }: { question: Question;
     if (!pdfRef.current) return;
     setLoading(true);
     try {
-      const { default: html2canvas } = await import("html2canvas");
+      const domtoimage = (await import("dom-to-image-more")).default;
       const { default: jsPDF } = await import("jspdf");
-      const canvas = await html2canvas(pdfRef.current, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
-      const imgData = canvas.toDataURL("image/png");
+      const dataUrl = await domtoimage.toPng(pdfRef.current, { style: { transform: "none" } });
       const pdf = new jsPDF("p", "mm", "a4");
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      let heightLeft = pdfHeight;
-      let position = 0;
-      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
-      heightLeft -= pdf.internal.pageSize.getHeight();
-      while (heightLeft > 0) {
-        position -= pdf.internal.pageSize.getHeight();
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
-        heightLeft -= pdf.internal.pageSize.getHeight();
-      }
+      const img = new Image();
+      img.src = dataUrl;
+      await new Promise((resolve) => { img.onload = resolve; });
+      const pdfHeight = (img.naturalHeight * pdfWidth) / img.naturalWidth;
+      pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
       pdf.save(`${assessmentTitle.replace(/\s+/g, "-").toLowerCase()}-insight.pdf`);
     } catch (err) {
       console.error("PDF failed:", err);
