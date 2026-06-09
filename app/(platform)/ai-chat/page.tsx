@@ -14,15 +14,55 @@ type Message = {
 
 export default function AIChatPage() {
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Hi! I can help you analyze student performance, suggest teaching strategies, or answer questions about your class data. What would you like to know?" },
+    { role: "assistant", content: "Hi! I have access to your TRACE analytics data. Ask me about weak topics, student mistakes, or teaching strategies." },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [contextLoaded, setContextLoaded] = useState(false);
+  const contextRef = useRef<Record<string, unknown> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    async function loadContext() {
+      try {
+        const [analyticsRes, classesRes, assessmentsRes] = await Promise.all([
+          fetch(`${getApiBaseUrl()}/api/analytics`).then((r) => r.json()).catch(() => ({ data: null })),
+          fetch(`${getApiBaseUrl()}/api/classes`).then((r) => r.json()).catch(() => ({ data: [] })),
+          fetch(`${getApiBaseUrl()}/api/assessments`).then((r) => r.json()).catch(() => ({ data: [] })),
+        ]);
+
+        const analyticsData = analyticsRes?.data ?? null;
+        const classes = Array.isArray(classesRes?.data) ? classesRes.data : [];
+        const assessments = Array.isArray(assessmentsRes?.data) ? assessmentsRes.data : [];
+
+        const labelCounts = analyticsData?.labelCounts ?? [];
+        const mistakeCounts = analyticsData?.questionMistakeCounts ?? [];
+        const topTopics = [...mistakeCounts]
+          .sort((a: any, b: any) => (b.incorrect_count ?? 0) - (a.incorrect_count ?? 0))
+          .slice(0, 5)
+          .map((q: any) => ({ topic: q.topic, incorrect_count: q.incorrect_count }));
+        const topLabels = [...labelCounts]
+          .sort((a: any, b: any) => (b.count ?? 0) - (a.count ?? 0))
+          .slice(0, 5);
+
+        contextRef.current = {
+          total_classes: classes.length,
+          total_assessments: assessments.length,
+          class_names: classes.map((c: any) => c.class_name),
+          weak_topics: topTopics,
+          common_mistakes: topLabels,
+        };
+        setContextLoaded(true);
+      } catch {
+        // context stays null — AI works generically
+      }
+    }
+    loadContext();
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -39,7 +79,7 @@ export default function AIChatPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: [...messages, userMsg].map((m) => ({ role: m.role, content: m.content })),
-          context: null,
+          context: contextRef.current,
         }),
       });
       const data = await res.json();
