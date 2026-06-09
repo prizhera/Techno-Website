@@ -81,7 +81,7 @@ export default function ExamGeneratorPage() {
     }
   }
 
-  function scramble() {
+  function randomize() {
     const arr = [...generatedQuestions];
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -169,8 +169,8 @@ export default function ExamGeneratorPage() {
               <Sparkles className="h-5 w-5 text-sky-600" />
               Generated Questions ({generatedQuestions.length})
               <div className="ml-auto flex gap-2">
-                <Button size="sm" variant="outline" onClick={scramble}>
-                  <Shuffle className="h-4 w-4" /> Scramble
+                <Button size="sm" variant="outline" onClick={randomize}>
+                  <Shuffle className="h-4 w-4" /> Randomize Order
                 </Button>
                 <Button size="sm" variant="outline" onClick={copyText}>
                   {copied ? <><Check className="h-4 w-4" /> Copied</> : <><Copy className="h-4 w-4" /> Copy All</>}
