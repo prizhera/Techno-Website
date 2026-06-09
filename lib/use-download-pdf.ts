@@ -6,27 +6,42 @@ const COLOR_PROPS = [
   "outlineColor", "textDecorationColor",
 ];
 
+let _colorParser: CanvasRenderingContext2D | null = null;
+function getColorParser() {
+  if (!_colorParser && typeof document !== "undefined") {
+    _colorParser = document.createElement("canvas").getContext("2d");
+  }
+  return _colorParser;
+}
+
+function normalizeColor(value: string): string {
+  const ctx = getColorParser();
+  if (!ctx) return value;
+  try {
+    ctx.fillStyle = value;
+    return ctx.fillStyle;
+  } catch {
+    return value;
+  }
+}
+
+function hasUnsupportedColor(value: string): boolean {
+  return /oklab|oklch|color\(/i.test(value);
+}
+
 function flattenColors(root: HTMLElement) {
   const saved: { el: HTMLElement; prop: string; value: string }[] = [];
-  const walk = (el: HTMLElement) => {
+  const process = (el: HTMLElement) => {
     for (const prop of COLOR_PROPS) {
       const cs = getComputedStyle(el)[prop as any];
-      if (cs && (cs.includes("oklab") || cs.includes("oklch") || cs.includes("color("))) {
+      if (cs && hasUnsupportedColor(cs)) {
         saved.push({ el, prop, value: el.style.getPropertyValue(prop) });
-        el.style.setProperty(prop, cs);
+        el.style.setProperty(prop, normalizeColor(cs));
       }
     }
-    el.querySelectorAll<HTMLElement>("*").forEach((child) => {
-      for (const prop of COLOR_PROPS) {
-        const cs = getComputedStyle(child)[prop as any];
-        if (cs && (cs.includes("oklab") || cs.includes("oklch") || cs.includes("color("))) {
-          saved.push({ el: child, prop, value: child.style.getPropertyValue(prop) });
-          child.style.setProperty(prop, cs);
-        }
-      }
-    });
   };
-  walk(root);
+  process(root);
+  root.querySelectorAll<HTMLElement>("*").forEach(process);
   return saved;
 }
 
