@@ -857,7 +857,15 @@ function DownloadInsightBtn({ question, assessmentTitle }: { question: Question;
     try {
       const domtoimage = (await import("dom-to-image-more")).default;
       const { default: jsPDF } = await import("jspdf");
-      const dataUrl = await domtoimage.toPng(pdfRef.current, { style: { transform: "none" } });
+      const dataUrl = await domtoimage.toPng(pdfRef.current, {
+        style: {
+          transform: "none",
+          opacity: "1",
+          filter: "none",
+          "mix-blend-mode": "normal",
+          "backdrop-filter": "none",
+        },
+      });
       const pdf = new jsPDF("p", "mm", "a4");
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const img = new Image();

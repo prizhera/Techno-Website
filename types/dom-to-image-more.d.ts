@@ -4,6 +4,7 @@ declare module "dom-to-image-more" {
     height?: number;
     style?: Record<string, string>;
     quality?: number;
+    filter?: (node: Node) => boolean;
   }
 
   const domtoimage: {

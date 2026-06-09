@@ -10,9 +10,32 @@ export function useDownloadPdf(filename = "document") {
     try {
       const domtoimage = (await import("dom-to-image-more")).default;
       const { default: jsPDF } = await import("jspdf");
+
+      const scale = 2;
+      const width = ref.current.scrollWidth;
+      const height = ref.current.scrollHeight;
+
       const dataUrl = await domtoimage.toPng(ref.current, {
-        style: { transform: "none" },
+        width: width * scale,
+        height: height * scale,
+        style: {
+          transform: "none",
+          opacity: "1",
+          filter: "none",
+          "mix-blend-mode": "normal",
+          "backdrop-filter": "none",
+          "box-shadow": "none",
+          "text-shadow": "none",
+        },
+        filter: (node) => {
+          if (node instanceof Element) {
+            const tag = node.tagName.toLowerCase();
+            if (tag === "script" || tag === "style") return false;
+          }
+          return true;
+        },
       });
+
       const pdf = new jsPDF("p", "mm", "a4");
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const img = new Image();
