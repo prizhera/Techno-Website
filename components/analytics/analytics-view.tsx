@@ -1,17 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Download } from "lucide-react";
 import { AnalyticsCard } from "./analytics-card";
 import {
   MistakeFrequencyChart,
   QuestionDifficultyChart,
   TopicDifficultyChart,
 } from "./charts";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import api from "@/lib/api";
 import { ItemAnalysis } from "./item-analysis";
 import { PerformanceDistributionChart } from "./performance-distribution";
+import { useDownloadPdf } from "@/lib/use-download-pdf";
 import {
   analyticsToMistakeFrequency,
   analyticsToQuestionDifficulty,
@@ -33,6 +36,7 @@ type AnalyticsViewProps = {
 };
 
 export function AnalyticsView({ initialData, initialClasses, initialAssessments }: AnalyticsViewProps) {
+  const { ref, downloadPdf, loading: pdfLoading } = useDownloadPdf("analytics-report");
   const [selectedClassId, setSelectedClassId] = useState("");
   const [selectedAssessmentId, setSelectedAssessmentId] = useState("");
   const [assessmentData, setAssessmentData] = useState<AnalyticsData | null>(null);
@@ -143,7 +147,8 @@ export function AnalyticsView({ initialData, initialClasses, initialAssessments 
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap gap-4">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-wrap gap-4">
         <div className="w-64">
           <Select
             value={selectedClassId}
@@ -178,7 +183,13 @@ export function AnalyticsView({ initialData, initialClasses, initialAssessments 
           <p className="self-center text-sm text-slate-500">Loading...</p>
         )}
       </div>
+        <Button variant="outline" size="sm" onClick={downloadPdf} disabled={pdfLoading}>
+          <Download className="mr-2 h-4 w-4" />
+          {pdfLoading ? "Generating PDF..." : "Download PDF"}
+        </Button>
+      </div>
 
+      <div ref={ref} className="space-y-6">
       <section className="grid gap-4 md:grid-cols-2">
         <AnalyticsCard
           title="Recurring Misconception"
@@ -276,6 +287,7 @@ export function AnalyticsView({ initialData, initialClasses, initialAssessments 
           <PerformanceDistributionChart />
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
