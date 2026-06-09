@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Sparkles, X, Loader2, AlertCircle, Copy, Check } from "lucide-react";
+import { Sparkles, X, Loader2, AlertCircle, Copy, Check, Shuffle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -79,6 +79,15 @@ export default function ExamGeneratorPage() {
     } finally {
       setGenerating(false);
     }
+  }
+
+  function scramble() {
+    const arr = [...generatedQuestions];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    setGeneratedQuestions(arr.map((q, idx) => ({ ...q, question_number: idx + 1 })));
   }
 
   return (
@@ -160,6 +169,9 @@ export default function ExamGeneratorPage() {
               <Sparkles className="h-5 w-5 text-sky-600" />
               Generated Questions ({generatedQuestions.length})
               <div className="ml-auto flex gap-2">
+                <Button size="sm" variant="outline" onClick={scramble}>
+                  <Shuffle className="h-4 w-4" /> Scramble
+                </Button>
                 <Button size="sm" variant="outline" onClick={copyText}>
                   {copied ? <><Check className="h-4 w-4" /> Copied</> : <><Copy className="h-4 w-4" /> Copy All</>}
                 </Button>
