@@ -855,24 +855,18 @@ function DownloadInsightBtn({ question, assessmentTitle }: { question: Question;
     if (!pdfRef.current) return;
     setLoading(true);
     try {
-      const domtoimage = (await import("dom-to-image-more")).default;
+      const html2canvas = (await import("html2canvas")).default;
       const { default: jsPDF } = await import("jspdf");
-      const dataUrl = await domtoimage.toPng(pdfRef.current, {
-        style: {
-          transform: "none",
-          opacity: "1",
-          filter: "none",
-          "mix-blend-mode": "normal",
-          "backdrop-filter": "none",
-        },
+      const canvas = await html2canvas(pdfRef.current, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        useCORS: true,
       });
+      const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const img = new Image();
-      img.src = dataUrl;
-      await new Promise((resolve) => { img.onload = resolve; });
-      const pdfHeight = (img.naturalHeight * pdfWidth) / img.naturalWidth;
-      pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
       pdf.save(`${assessmentTitle.replace(/\s+/g, "-").toLowerCase()}-insight.pdf`);
     } catch (err) {
       console.error("PDF failed:", err);

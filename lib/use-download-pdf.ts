@@ -1,5 +1,42 @@
 import { useCallback, useRef, useState } from "react";
 
+const COLOR_PROPS = [
+  "color", "backgroundColor", "borderColor", "borderTopColor",
+  "borderRightColor", "borderBottomColor", "borderLeftColor",
+  "outlineColor", "textDecorationColor",
+];
+
+function flattenColors(root: HTMLElement) {
+  const saved: { el: HTMLElement; prop: string; value: string }[] = [];
+  const walk = (el: HTMLElement) => {
+    for (const prop of COLOR_PROPS) {
+      const cs = getComputedStyle(el)[prop as any];
+      if (cs && (cs.includes("oklab") || cs.includes("oklch") || cs.includes("color("))) {
+        saved.push({ el, prop, value: el.style.getPropertyValue(prop) });
+        el.style.setProperty(prop, cs);
+      }
+    }
+    el.querySelectorAll<HTMLElement>("*").forEach((child) => {
+      for (const prop of COLOR_PROPS) {
+        const cs = getComputedStyle(child)[prop as any];
+        if (cs && (cs.includes("oklab") || cs.includes("oklch") || cs.includes("color("))) {
+          saved.push({ el: child, prop, value: child.style.getPropertyValue(prop) });
+          child.style.setProperty(prop, cs);
+        }
+      }
+    });
+  };
+  walk(root);
+  return saved;
+}
+
+function restoreColors(saved: { el: HTMLElement; prop: string; value: string }[]) {
+  for (const { el, prop, value } of saved) {
+    if (value) el.style.setProperty(prop, value);
+    else el.style.removeProperty(prop);
+  }
+}
+
 export function useDownloadPdf(filename = "document") {
   const ref = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
@@ -7,64 +44,43 @@ export function useDownloadPdf(filename = "document") {
   const downloadPdf = useCallback(async () => {
     if (!ref.current) return;
     setLoading(true);
+    const saved = flattenColors(ref.current);
     try {
-      const domtoimage = (await import("dom-to-image-more")).default;
+      const html2canvas = (await import("html2canvas")).default;
       const { default: jsPDF } = await import("jspdf");
 
-      const dataUrl = await domtoimage.toPng(ref.current, {
-        style: {
-          transform: "none",
-          filter: "none",
-          "mix-blend-mode": "normal",
-          "backdrop-filter": "none",
-          "box-shadow": "none",
-          "text-shadow": "none",
-        },
-        filter: (node) => {
-          if (node instanceof Element) {
-            const tag = node.tagName.toLowerCase();
-            if (tag === "script" || tag === "style") return false;
-          }
-          return true;
-        },
+      (document.activeElement as HTMLElement)?.blur();
+
+      const canvas = await html2canvas(ref.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
       });
 
+      const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const img = new Image();
-      img.src = dataUrl;
-      await new Promise((resolve) => { img.onload = resolve; });
-      const pdfHeight = (img.naturalHeight * pdfWidth) / img.naturalWidth;
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       const pageHeight = pdf.internal.pageSize.getHeight();
+      let remaining = pdfHeight;
+      let position = 0;
 
-      if (pdfHeight <= pageHeight) {
-        pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
-      } else {
-        const canvas = document.createElement("canvas");
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        const ctx = canvas.getContext("2d")!;
-        ctx.drawImage(img, 0, 0);
-        const pagePixels = (pageHeight * img.naturalWidth) / pdfWidth;
-        let offset = 0;
-        while (offset < img.naturalHeight) {
-          if (offset > 0) pdf.addPage();
-          const sliceCanvas = document.createElement("canvas");
-          sliceCanvas.width = img.naturalWidth;
-          const sliceH = Math.min(pagePixels, img.naturalHeight - offset);
-          sliceCanvas.height = sliceH;
-          const sliceCtx = sliceCanvas.getContext("2d")!;
-          sliceCtx.drawImage(canvas, 0, offset, img.naturalWidth, sliceH, 0, 0, img.naturalWidth, sliceH);
-          const sliceData = sliceCanvas.toDataURL("image/png");
-          const sliceHeight = (sliceH * pdfWidth) / img.naturalWidth;
-          pdf.addImage(sliceData, "PNG", 0, 0, pdfWidth, sliceHeight);
-          offset += pagePixels;
-        }
+      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
+      remaining -= pageHeight;
+
+      while (remaining > 0) {
+        position -= pageHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
+        remaining -= pageHeight;
       }
+
       pdf.save(`${filename}.pdf`);
     } catch (err) {
       console.error("PDF generation failed:", err);
     } finally {
+      restoreColors(saved);
       setLoading(false);
     }
   }, [filename]);
