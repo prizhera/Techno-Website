@@ -1,10 +1,8 @@
 declare module "dom-to-image-more" {
   interface DomToImageOptions {
-    width?: number;
-    height?: number;
     style?: Record<string, string>;
     quality?: number;
-    filter?: (node: Node) => boolean;
+    filter?: (node: unknown) => boolean;
   }
 
   const domtoimage: {

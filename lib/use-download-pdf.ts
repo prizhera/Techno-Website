@@ -11,16 +11,9 @@ export function useDownloadPdf(filename = "document") {
       const domtoimage = (await import("dom-to-image-more")).default;
       const { default: jsPDF } = await import("jspdf");
 
-      const scale = 2;
-      const width = ref.current.scrollWidth;
-      const height = ref.current.scrollHeight;
-
       const dataUrl = await domtoimage.toPng(ref.current, {
-        width: width * scale,
-        height: height * scale,
         style: {
           transform: "none",
-          opacity: "1",
           filter: "none",
           "mix-blend-mode": "normal",
           "backdrop-filter": "none",
@@ -42,7 +35,32 @@ export function useDownloadPdf(filename = "document") {
       img.src = dataUrl;
       await new Promise((resolve) => { img.onload = resolve; });
       const pdfHeight = (img.naturalHeight * pdfWidth) / img.naturalWidth;
-      pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      if (pdfHeight <= pageHeight) {
+        pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
+      } else {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0);
+        const pagePixels = (pageHeight * img.naturalWidth) / pdfWidth;
+        let offset = 0;
+        while (offset < img.naturalHeight) {
+          if (offset > 0) pdf.addPage();
+          const sliceCanvas = document.createElement("canvas");
+          sliceCanvas.width = img.naturalWidth;
+          const sliceH = Math.min(pagePixels, img.naturalHeight - offset);
+          sliceCanvas.height = sliceH;
+          const sliceCtx = sliceCanvas.getContext("2d")!;
+          sliceCtx.drawImage(canvas, 0, offset, img.naturalWidth, sliceH, 0, 0, img.naturalWidth, sliceH);
+          const sliceData = sliceCanvas.toDataURL("image/png");
+          const sliceHeight = (sliceH * pdfWidth) / img.naturalWidth;
+          pdf.addImage(sliceData, "PNG", 0, 0, pdfWidth, sliceHeight);
+          offset += pagePixels;
+        }
+      }
       pdf.save(`${filename}.pdf`);
     } catch (err) {
       console.error("PDF generation failed:", err);
